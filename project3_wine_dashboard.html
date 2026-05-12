@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>The Chemistry of Wine Quality</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0e0507;
+      --surface:   #160b0d;
+      --panel:     #1c0f11;
+      --border:    #3a1f24;
+      --border-lt: #4a2f34;
+      --gold:      #C9A84C;
+      --gold-dim:  #8a6a2a;
+      --text:      #e8d5d8;
+      --text-dim:  #9a7a7e;
+      --text-mute: #5a3a3e;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; min-height: 100vh; overflow-x: hidden; }
+
+    /* HERO */
+    .hero {
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; padding: 60px 40px;
+      background: radial-gradient(ellipse 60% 50% at 50% 60%, rgba(107,26,42,0.18) 0%, transparent 70%), var(--bg);
+    }
+    .hero-eyebrow { font-size: 14px; letter-spacing: 0.25em; font-weight: bold; color: var(--gold); text-transform: uppercase; margin-bottom: 24px; opacity: 0; animation: fadeUp 0.8s 0.2s forwards; }
+    .hero-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(52px, 8vw, 96px); font-weight: 400; line-height: 1.05; margin-bottom: 28px; opacity: 0; animation: fadeUp 0.8s 0.4s forwards; }
+    .hero-title em { font-style: italic; color: var(--gold); }
+    .hero-sub { font-size: 18px; color: var(--text-dim); line-height: 1.8; max-width: 520px; margin: 0 auto 48px; opacity: 0; animation: fadeUp 0.8s 0.6s forwards; }
+    .hero-claims { display: flex; gap: 40px; justify-content: center; flex-wrap: wrap; margin-bottom: 60px; opacity: 0; animation: fadeUp 0.8s 0.8s forwards; }
+    .claim-val { font-family: 'Cormorant Garamond', serif; font-size: 56px; font-weight: 400; color: var(--gold); line-height: 1; margin-bottom: 6px; }
+    .claim-label { font-size: 14px; font-weight: bold; letter-spacing: 0.15em; color: var(--text-mute); text-transform: uppercase; }
+    .hero-cta { display: inline-flex; align-items: center; gap: 10px; font-size: 16px; font-weight: bold; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); text-decoration: none; border: 1px solid var(--gold-dim); padding: 14px 32px; cursor: pointer; background: none; transition: background 0.2s; opacity: 0; animation: fadeUp 0.8s 1.0s forwards; }
+    .hero-cta:hover { background: rgba(201,168,76,0.08); }
+    .hero-cta:hover svg { transform: translateY(4px); }
+    .hero-cta svg { transition: transform 0.3s; }
+
+    /* INSIGHT STRIP */
+    .insight-strip { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .insight-card { padding: 32px 28px; border-right: 1px solid var(--border); }
+    .insight-card:last-child { border-right: none; }
+    .insight-num { font-family: 'Cormorant Garamond', serif; font-size: 72px; font-weight: 400; line-height: 1; margin-bottom: 8px; }
+    .insight-num.pos { color: #6B1A2A; }
+    .insight-num.neg { color: #DCC878; }
+    .insight-num.neu { color: var(--text-mute); }
+    .insight-title { font-size: 18px; font-weight: bold; letter-spacing: 0.1em; color: var(--text); text-transform: uppercase; margin-bottom: 8px; }
+    .insight-desc { font-size: 16px; color: var(--text-dim); line-height: 1.7; }
+
+    /* DASHBOARD */
+    #dashboard { display: grid; grid-template-columns: 1fr 380px; min-height: 100vh; border-top: 1px solid var(--border); }
+    .rack-panel { padding: 32px; background: var(--surface); }
+    .panel-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 24px; }
+    .panel-title { font-family: 'Cormorant Garamond', serif; font-size: 36px; font-weight: 400; }
+    .panel-sub { font-size: 14px; font-weight: bold; letter-spacing: 0.12em; color: var(--text-mute); text-transform: uppercase; }
+
+    #rack { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; margin-bottom: 20px; }
+    .bottle { display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: opacity 0.35s ease, transform 0.2s ease; }
+    .bottle:hover { transform: translateY(-5px); }
+    .bottle.faded { opacity: 0.07; pointer-events: none; }
+    .bottle.selected .bottle-svg { filter: drop-shadow(0 0 8px rgba(201,168,76,0.7)); }
+    .bottle-svg { width: 100%; max-width: 40px; }
+    .score-badge { font-size: 14px; font-weight: bold; color: var(--text-mute); margin-top: 4px; }
+
+    .legend { display: flex; gap: 20px; flex-wrap: wrap; padding-top: 16px; border-top: 1px solid var(--border); }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: bold; color: var(--text-mute); letter-spacing: 0.08em; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+
+    /* SIDEBAR */
+    .sidebar { background: var(--panel); border-left: 1px solid var(--border); display: flex; flex-direction: column; }
+    .score-display { padding: 32px 24px 28px; border-bottom: 1px solid var(--border); text-align: center; background: linear-gradient(180deg, rgba(107,26,42,0.12) 0%, transparent 100%); }
+    .score-label { font-size: 14px; font-weight: bold; letter-spacing: 0.2em; color: var(--text-mute); text-transform: uppercase; margin-bottom: 10px; }
+    .score-big { font-family: 'Cormorant Garamond', serif; font-size: 96px; font-weight: 400; color: var(--gold); line-height: 1; transition: all 0.4s ease; }
+    .score-change { font-size: 14px; font-weight: bold; color: var(--text-dim); margin-top: 6px; min-height: 16px; }
+    .score-change.up { color: #6aaa6a; }
+    .score-change.down { color: #aa6a6a; }
+    .score-count { font-size: 14px; color: var(--text-mute); margin-top: 4px; letter-spacing: 0.1em; }
+
+    .filters { padding: 32px; display: flex; flex-direction: column; gap: 36px; flex: 1; background: rgba(107,26,42,0.02); }
+    .filter-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+    .filter-name { font-size: 18px; letter-spacing: 0.08em; font-weight: 600; color: var(--text); text-transform: uppercase; }
+    .filter-range { font-size: 18px; color: var(--gold); font-weight: bold; }
+    .slider-wrap { display: flex; flex-direction: column; gap: 10px; }
+
+    input[type=range] { -webkit-appearance: none; width: 100%; height: 6px; background: var(--border-lt); outline: none; border-radius: 3px; display: block; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: var(--gold); cursor: pointer; border: 3px solid var(--panel); box-shadow: 0 0 0 2px var(--gold-dim); transition: transform 0.1s; }
+    input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+    input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: var(--gold); cursor: pointer; border: 3px solid var(--panel); box-shadow: 0 0 0 2px var(--gold-dim); transition: transform 0.1s; }
+    input[type=range]::-moz-range-thumb:hover { transform: scale(1.15); }
+
+    .filter-caption { font-size: 14px; color: #8a7a7e; line-height: 1.6; margin-top: 10px; }
+    .tag { display: inline-block; padding: 4px 10px; font-size: 12px; font-weight: bold; letter-spacing: 0.1em; border-radius: 2px; margin-right: 4px; }
+    .tag.strong { background: rgba(107,26,42,0.4); color: #C8828C; }
+    .tag.myth   { background: rgba(90,90,106,0.3); color: var(--text-mute); }
+
+    .sidebar-footer { padding: 20px 24px; border-top: 1px solid var(--border); }
+    .match-row { display: flex; justify-content: space-between; align-items: baseline; }
+    .match-label { font-size: 14px; font-weight: bold; color: var(--text-mute); letter-spacing: 0.1em; text-transform: uppercase; }
+    .match-num { font-family: 'Cormorant Garamond', serif; font-size: 48px; font-weight: 300; color: var(--text-dim); }
+
+    /* OVERLAY */
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(8,3,4,0.92); z-index: 100; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+    .overlay.open { display: flex; }
+    .card { background: var(--panel); border: 1px solid var(--border-lt); width: 460px; max-width: 90vw; position: relative; animation: cardIn 0.3s ease forwards; }
+    @keyframes cardIn { from { opacity: 0; transform: translateY(16px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    .card-header { padding: 28px 28px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+    .card-score { font-family: 'Cormorant Garamond', serif; font-size: 96px; font-weight: 300; line-height: 1; }
+    .card-score-sub { font-size: 14px; font-weight: bold; color: var(--text-mute); letter-spacing: 0.15em; text-transform: uppercase; margin-top: 2px; }
+    .card-bottle-mini { width: 36px; flex-shrink: 0; margin-top: 4px; }
+    .card-close { position: absolute; top: 16px; right: 18px; background: none; border: none; color: var(--text-mute); font-size: 16px; cursor: pointer; line-height: 1; padding: 4px; transition: color 0.2s; }
+    .card-close:hover { color: var(--gold); }
+    .card-body { padding: 20px 28px 24px; }
+    .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .bar-name { font-size: 14px; color: var(--text-mute); font-weight: bold; width: 150px; flex-shrink: 0; letter-spacing: 0.06em; text-transform: uppercase; }
+    .bar-track { flex: 1; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+    .bar-value { font-size: 14px; color: var(--text-dim); font-weight: bold; width: 50px; text-align: right; }
+    .card-note { margin-top: 16px; padding: 12px 16px; border-left: 2px solid var(--gold-dim); background: rgba(201,168,76,0.04); font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 20px; color: var(--text-dim); line-height: 1.6; }
+
+    /* OUTRO */
+    .outro { padding: 80px 40px; text-align: center; border-top: 1px solid var(--border); background: radial-gradient(ellipse 50% 60% at 50% 0%, rgba(107,26,42,0.12), transparent 70%); }
+    .outro-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(36px, 5vw, 64px); font-weight: 300; margin-bottom: 16px; }
+    .outro-title em { font-style: italic; color: var(--gold); }
+    .outro-body { font-size: 18px; color: var(--text-dim); line-height: 1.8; max-width: 520px; margin: 0 auto; }
+    .data-credit { font-size: 14px; color: var(--text-mute); margin-top: 24px; letter-spacing: 0.1em; }
+    .data-credit a { color: var(--gold-dim); text-decoration: none; }
+
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 900px) {
+      #dashboard { grid-template-columns: 1fr; }
+      .sidebar { border-left: none; border-top: 1px solid var(--border); }
+      #rack { grid-template-columns: repeat(7, 1fr); }
+      .insight-strip { grid-template-columns: 1fr; }
+      .insight-card { border-right: none; border-bottom: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="hero-eyebrow">Interactive Data Story &nbsp;·&nbsp; UCI Wine Quality Dataset &nbsp;·&nbsp; 1,143 red wines</div>
+  <h1 class="hero-title">The <em>Chemistry</em><br>of a Great Bottle</h1>
+  <p class="hero-sub">What actually separates an exceptional wine from an average one? Not price, not region — but a precise chemical fingerprint. Explore real wines and discover what the data reveals.</p>
+  <div class="hero-claims">
+    <div class="claim"><div class="claim-val">13%+</div><div class="claim-label">alcohol in top wines</div></div>
+    <div class="claim"><div class="claim-val">&lt;0.5</div><div class="claim-label">volatile acidity in top wines</div></div>
+    <div class="claim"><div class="claim-val">sugar?</div><div class="claim-label">barely matters</div></div>
+  </div>
+  <a class="hero-cta" href="#dashboard">
+    Explore the Rack
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 7l5 4 5-4" stroke="#C9A84C" stroke-width="1.2" stroke-linecap="round"/></svg>
+  </a>
+</section>
+
+<div class="insight-strip">
+  <div class="insight-card">
+    <div class="insight-num pos">+alcohol</div>
+    <div class="insight-title">The real driver</div>
+    <div class="insight-desc">Wines scoring 8 consistently cluster above 11% alcohol. Raise the minimum slider and watch low scores disappear from the rack.</div>
+  </div>
+  <div class="insight-card">
+    <div class="insight-num neg">-acidity</div>
+    <div class="insight-title">The quality killer</div>
+    <div class="insight-desc">High volatile acidity degrades taste. Most top-rated wines in this dataset sit below 0.50 on the acidity scale.</div>
+  </div>
+  <div class="insight-card">
+    <div class="insight-num neu">sugar?</div>
+    <div class="insight-title">The myth</div>
+    <div class="insight-desc">Residual sugar varies widely even among the highest-rated wines. Move that slider and almost nothing changes.</div>
+  </div>
+</div>
+
+<section id="dashboard">
+  <div class="rack-panel">
+    <div class="panel-header">
+      <div class="panel-title">The Wine Rack</div>
+      <div class="panel-sub">56 real wines &nbsp;·&nbsp; click any bottle to inspect</div>
+    </div>
+    <div id="rack"></div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#8B2A3A"></div>score 8</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#A85060"></div>score 7</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#C8828C"></div>score 6</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#D4A882"></div>score 5</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#DCC878"></div>score 4</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#E8D88A"></div>score 3</div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="score-display">
+      <div class="score-label">avg quality score</div>
+      <div class="score-big" id="avg-score">5.9</div>
+      <div class="score-change" id="score-change"></div>
+      <div class="score-count" id="visible-count">56 wines visible</div>
+    </div>
+    <div class="filters">
+      <div class="filter-group">
+        <div class="filter-header">
+          <span class="filter-name">Alcohol %</span>
+          <span class="filter-range" id="alc-val">8.0 - 15.0</span>
+        </div>
+        <div class="slider-wrap">
+          <input type="range" id="alc-min" min="8" max="15" step="0.1" value="8">
+          <input type="range" id="alc-max" min="8" max="15" step="0.1" value="15">
+        </div>
+        <div class="filter-caption"><span class="tag strong">strong signal</span> Highest predictor of quality in this dataset.</div>
+      </div>
+      <div class="filter-group">
+        <div class="filter-header">
+          <span class="filter-name">Volatile Acidity</span>
+          <span class="filter-range" id="va-val">0.10 - 1.60</span>
+        </div>
+        <div class="slider-wrap">
+          <input type="range" id="va-min" min="0.1" max="1.6" step="0.05" value="0.1">
+          <input type="range" id="va-max" min="0.1" max="1.6" step="0.05" value="1.6">
+        </div>
+        <div class="filter-caption"><span class="tag strong">strong signal</span> Low acidity = better taste. Top wines sit below 0.50.</div>
+      </div>
+      <div class="filter-group">
+        <div class="filter-header">
+          <span class="filter-name">Residual Sugar</span>
+          <span class="filter-range" id="rs-val">0.9 - 15.5 g/L</span>
+        </div>
+        <div class="slider-wrap">
+          <input type="range" id="rs-min" min="0.9" max="15.5" step="0.1" value="0.9">
+          <input type="range" id="rs-max" min="0.9" max="15.5" step="0.1" value="15.5">
+        </div>
+        <div class="filter-caption"><span class="tag myth">myth</span> Barely affects score. Slide it — almost nothing changes.</div>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="match-row">
+        <span class="match-label">wines showing</span>
+        <span class="match-num" id="match-count">56</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="outro">
+  <h2 class="outro-title">The <em>fingerprint</em> of excellence</h2>
+  <p class="outro-body">High alcohol. Low acidity. Everything else is secondary. The data tells a clear story — one that dissolves the myth that sweetness drives quality and reveals what sommeliers already know through chemistry.</p>
+  <p class="data-credit">Data source: <a href="https://www.kaggle.com/datasets/yasserh/wine-quality-dataset" target="_blank">Wine Quality Dataset</a> &nbsp;·&nbsp; 1,143 red wines &nbsp;·&nbsp; UCI Machine Learning Repository</p>
+</section>
+
+<div class="overlay" id="overlay">
+  <div class="card">
+    <button class="card-close" id="close-btn">&#x2715;</button>
+    <div class="card-header">
+      <div>
+        <div class="card-score" id="card-score">8</div>
+        <div class="card-score-sub">quality score / 10</div>
+      </div>
+      <div class="card-bottle-mini" id="card-bottle-mini"></div>
+    </div>
+    <div class="card-body">
+      <div id="bar-rows"></div>
+      <div class="card-note" id="card-note"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Real data sampled from WineQT.csv — UCI Wine Quality Dataset
+  const wines = [
+    {q:3,alc:9.0,va:0.58,rs:2.2,ph:3.25,sul:0.57,ca:0.66,fa:11.6},
+    {q:3,alc:8.4,va:0.61,rs:2.1,ph:3.16,sul:0.63,ca:0.49,fa:10.4},
+    {q:3,alc:9.95,va:0.76,rs:1.8,ph:3.55,sul:0.63,ca:0.02,fa:6.7},
+    {q:3,alc:10.9,va:1.58,rs:2.1,ph:3.5,sul:0.4,ca:0.0,fa:7.6},
+    {q:3,alc:10.2,va:0.88,rs:5.7,ph:3.4,sul:0.52,ca:0.05,fa:7.1},
+    {q:3,alc:9.7,va:0.98,rs:2.1,ph:3.31,sul:0.55,ca:0.05,fa:7.3},
+    {q:4,alc:12.0,va:0.4,rs:6.3,ph:3.28,sul:0.56,ca:0.4,fa:8.5},
+    {q:4,alc:10.0,va:0.5,rs:2.3,ph:3.34,sul:0.52,ca:0.24,fa:9.9},
+    {q:4,alc:11.8,va:0.67,rs:4.3,ph:3.45,sul:0.56,ca:0.0,fa:6.5},
+    {q:4,alc:10.0,va:0.79,rs:2.1,ph:3.59,sul:0.61,ca:0.0,fa:6.2},
+    {q:4,alc:9.6,va:0.38,rs:2.6,ph:3.32,sul:0.7,ca:0.48,fa:7.5},
+    {q:4,alc:11.0,va:1.04,rs:2.3,ph:3.52,sul:0.57,ca:0.08,fa:6.7},
+    {q:4,alc:10.0,va:0.35,rs:2.0,ph:3.43,sul:0.54,ca:0.24,fa:7.3},
+    {q:4,alc:9.6,va:0.46,rs:4.5,ph:3.05,sul:0.57,ca:0.49,fa:12.5},
+    {q:4,alc:9.1,va:0.89,rs:1.8,ph:3.36,sul:0.33,ca:0.03,fa:7.9},
+    {q:4,alc:9.7,va:0.77,rs:1.6,ph:3.29,sul:0.54,ca:0.04,fa:9.1},
+    {q:5,alc:9.8,va:0.61,rs:2.0,ph:3.48,sul:0.65,ca:0.01,fa:7.4},
+    {q:5,alc:11.4,va:0.59,rs:2.1,ph:3.52,sul:0.56,ca:0.01,fa:6.1},
+    {q:5,alc:9.2,va:0.58,rs:1.8,ph:3.28,sul:0.54,ca:0.08,fa:6.7},
+    {q:5,alc:9.8,va:0.47,rs:2.9,ph:3.29,sul:0.6,ca:0.49,fa:8.8},
+    {q:5,alc:9.6,va:0.81,rs:2.5,ph:3.48,sul:0.56,ca:0.0,fa:7.0},
+    {q:5,alc:10.5,va:0.75,rs:2.5,ph:3.34,sul:0.64,ca:0.14,fa:8.9},
+    {q:5,alc:9.5,va:0.78,rs:1.9,ph:3.23,sul:0.59,ca:0.42,fa:7.7},
+    {q:5,alc:13.0,va:0.5,rs:2.3,ph:3.63,sul:0.63,ca:0.09,fa:5.6},
+    {q:5,alc:9.7,va:0.65,rs:2.3,ph:3.67,sul:0.8,ca:0.02,fa:7.2},
+    {q:5,alc:9.4,va:0.77,rs:2.3,ph:3.1,sul:0.55,ca:0.22,fa:8.7},
+    {q:6,alc:11.9,va:0.25,rs:1.7,ph:3.38,sul:0.6,ca:0.43,fa:8.0},
+    {q:6,alc:12.5,va:0.58,rs:2.4,ph:3.58,sul:0.67,ca:0.2,fa:6.0},
+    {q:6,alc:11.6,va:0.69,rs:3.0,ph:3.48,sul:0.74,ca:0.31,fa:8.7},
+    {q:6,alc:9.5,va:0.51,rs:2.1,ph:3.52,sul:0.73,ca:0.18,fa:7.3},
+    {q:6,alc:9.5,va:0.34,rs:3.2,ph:3.05,sul:0.81,ca:0.52,fa:13.3},
+    {q:6,alc:10.5,va:0.54,rs:2.2,ph:3.25,sul:1.18,ca:0.3,fa:6.9},
+    {q:6,alc:9.7,va:0.36,rs:2.2,ph:3.47,sul:0.77,ca:0.21,fa:6.4},
+    {q:6,alc:12.8,va:0.75,rs:2.2,ph:3.39,sul:0.4,ca:0.01,fa:7.1},
+    {q:6,alc:10.1,va:0.63,rs:1.8,ph:3.36,sul:0.64,ca:0.33,fa:6.5},
+    {q:6,alc:12.2,va:0.46,rs:2.9,ph:3.33,sul:0.62,ca:0.44,fa:10.0},
+    {q:7,alc:11.4,va:0.29,rs:2.8,ph:3.04,sul:0.68,ca:0.75,fa:13.3},
+    {q:7,alc:11.8,va:0.28,rs:1.7,ph:3.3,sul:0.74,ca:0.35,fa:8.5},
+    {q:7,alc:11.3,va:0.26,rs:2.5,ph:3.4,sul:0.78,ca:0.34,fa:8.2},
+    {q:7,alc:10.6,va:0.52,rs:2.5,ph:3.34,sul:0.86,ca:0.09,fa:8.7},
+    {q:7,alc:12.3,va:0.3,rs:8.3,ph:3.01,sul:0.51,ca:0.68,fa:7.9},
+    {q:7,alc:11.8,va:0.41,rs:6.2,ph:3.21,sul:0.49,ca:0.45,fa:10.0},
+    {q:7,alc:11.3,va:0.57,rs:2.3,ph:3.47,sul:0.71,ca:0.12,fa:6.4},
+    {q:7,alc:11.0,va:0.27,rs:2.3,ph:3.4,sul:0.64,ca:0.34,fa:7.5},
+    {q:7,alc:10.5,va:0.58,rs:1.8,ph:3.32,sul:0.56,ca:0.01,fa:7.7},
+    {q:7,alc:11.7,va:0.28,rs:2.4,ph:3.26,sul:0.39,ca:0.28,fa:6.7},
+    {q:8,alc:13.4,va:0.62,rs:5.2,ph:3.22,sul:0.69,ca:0.67,fa:11.3},
+    {q:8,alc:12.8,va:0.35,rs:3.6,ph:3.35,sul:0.86,ca:0.46,fa:7.9},
+    {q:8,alc:11.3,va:0.38,rs:2.0,ph:3.23,sul:0.76,ca:0.31,fa:7.2},
+    {q:8,alc:9.8,va:0.31,rs:2.2,ph:2.88,sul:0.82,ca:0.72,fa:12.6},
+    {q:8,alc:12.9,va:0.85,rs:1.4,ph:3.56,sul:0.82,ca:0.05,fa:5.6},
+    {q:8,alc:11.4,va:0.36,rs:1.8,ph:3.24,sul:0.7,ca:0.3,fa:7.4},
+    {q:8,alc:12.6,va:0.32,rs:6.4,ph:3.23,sul:0.82,ca:0.45,fa:10.3},
+    {q:8,alc:14.0,va:0.42,rs:2.0,ph:3.72,sul:0.74,ca:0.24,fa:5.0},
+    {q:8,alc:11.0,va:0.35,rs:2.6,ph:3.15,sul:0.65,ca:0.53,fa:10.7},
+    {q:8,alc:11.7,va:0.42,rs:1.8,ph:3.35,sul:0.69,ca:0.39,fa:8.6}
+  ];
+
+  const colorMap = {8:'#8B2A3A',7:'#A85060',6:'#C8828C',5:'#D4A882',4:'#DCC878',3:'#E8D88A'};
+  function scoreToColor(q) { return colorMap[q] || '#E8D88A'; }
+
+  function bottleSVG(color, maxW) {
+    return '<svg class="bottle-svg" viewBox="0 0 30 60" xmlns="http://www.w3.org/2000/svg" style="max-width:' + (maxW||40) + 'px;width:100%">'
+      + '<rect x="11" y="0" width="8" height="9" rx="2" fill="' + color + '" opacity="0.8"/>'
+      + '<rect x="12" y="9" width="6" height="3" fill="' + color + '"/>'
+      + '<path d="M9 12 Q5 20 5 28 L5 52 Q5 57 15 57 Q25 57 25 52 L25 28 Q25 20 21 12 Z" fill="' + color + '"/>'
+      + '<rect x="11" y="1" width="8" height="3" rx="1" fill="rgba(255,255,255,0.18)"/>'
+      + '<ellipse cx="15" cy="24" rx="5" ry="2" fill="rgba(255,255,255,0.06)"/>'
+      + '<rect x="8" y="32" width="14" height="12" rx="1" fill="rgba(255,255,255,0.06)"/>'
+      + '</svg>';
+  }
+
+  const rack = document.getElementById('rack');
+  const bottleEls = [];
+  wines.forEach(function(w) {
+    var div = document.createElement('div');
+    div.className = 'bottle';
+    div.innerHTML = bottleSVG(scoreToColor(w.q)) + '<span class="score-badge">' + w.q + '</span>';
+    div.addEventListener('click', function() { showDetail(w); });
+    rack.appendChild(div);
+    bottleEls.push(div);
+  });
+
+  var baselineAvg = wines.reduce(function(s,w){ return s + w.q; }, 0) / wines.length;
+  document.getElementById('avg-score').textContent = baselineAvg.toFixed(1);
+
+  function filterWines() {
+    var alcMin = parseFloat(document.getElementById('alc-min').value);
+    var alcMax = parseFloat(document.getElementById('alc-max').value);
+    var vaMin  = parseFloat(document.getElementById('va-min').value);
+    var vaMax  = parseFloat(document.getElementById('va-max').value);
+    var rsMin  = parseFloat(document.getElementById('rs-min').value);
+    var rsMax  = parseFloat(document.getElementById('rs-max').value);
+
+    document.getElementById('alc-val').textContent = alcMin.toFixed(1) + ' - ' + alcMax.toFixed(1);
+    document.getElementById('va-val').textContent  = vaMin.toFixed(2) + ' - ' + vaMax.toFixed(2);
+    document.getElementById('rs-val').textContent  = rsMin.toFixed(1) + ' - ' + rsMax.toFixed(1) + ' g/L';
+
+    var visible = 0, totalQ = 0;
+    wines.forEach(function(w, i) {
+      var show = w.alc >= alcMin && w.alc <= alcMax && w.va >= vaMin && w.va <= vaMax && w.rs >= rsMin && w.rs <= rsMax;
+      bottleEls[i].classList.toggle('faded', !show);
+      if (show) { visible++; totalQ += w.q; }
+    });
+
+    var avg = visible > 0 ? totalQ / visible : 0;
+    document.getElementById('avg-score').textContent = visible > 0 ? avg.toFixed(1) : '0';
+    document.getElementById('visible-count').textContent = visible + ' wine' + (visible !== 1 ? 's' : '') + ' visible';
+    document.getElementById('match-count').textContent = visible;
+
+    var changeEl = document.getElementById('score-change');
+    var diff = avg - baselineAvg;
+    if (Math.abs(diff) > 0.05 && visible > 0) {
+      changeEl.textContent = (diff > 0 ? '+' : '') + diff.toFixed(1) + ' from baseline';
+      changeEl.className = 'score-change ' + (diff > 0 ? 'up' : 'down');
+    } else {
+      changeEl.textContent = '';
+      changeEl.className = 'score-change';
+    }
+  }
+
+  ['alc-min','alc-max','va-min','va-max','rs-min','rs-max'].forEach(function(id) {
+    document.getElementById(id).addEventListener('input', filterWines);
+  });
+
+  function showDetail(w) {
+    bottleEls.forEach(function(b, i) { b.classList.toggle('selected', wines[i] === w); });
+    var scoreEl = document.getElementById('card-score');
+    scoreEl.textContent = w.q;
+    scoreEl.style.color = scoreToColor(w.q);
+    document.getElementById('card-bottle-mini').innerHTML = bottleSVG(scoreToColor(w.q), 36);
+
+    var bars = [
+      {name:'Alcohol %',        val:w.alc, min:8,   max:15,  goodHigh:true},
+      {name:'Volatile Acidity', val:w.va,  min:0.1, max:1.6, goodHigh:false},
+      {name:'Residual Sugar',   val:w.rs,  min:0.9, max:15.5,goodHigh:null},
+      {name:'Sulphates',        val:w.sul, min:0.3, max:2.0, goodHigh:true},
+      {name:'pH',               val:w.ph,  min:2.7, max:4.1, goodHigh:null},
+      {name:'Fixed Acidity',    val:w.fa,  min:4.6, max:15.9,goodHigh:null}
+    ];
+
+    var html = '';
+    bars.forEach(function(b) {
+      var pct = Math.max(2, Math.min(100, Math.round(((b.val - b.min) / (b.max - b.min)) * 100)));
+      var barColor = b.goodHigh === true ? '#8B2A3A' : b.goodHigh === false ? '#8a6a2a' : '#4a5a6a';
+      html += '<div class="bar-row"><span class="bar-name">' + b.name + '</span>'
+            + '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%;background:' + barColor + '"></div></div>'
+            + '<span class="bar-value">' + b.val.toFixed(2) + '</span></div>';
+    });
+    document.getElementById('bar-rows').innerHTML = html;
+
+    var note = w.q >= 8
+      ? 'High alcohol, low acidity. This is the chemical fingerprint of excellence.'
+      : w.q <= 4
+      ? 'High acidity, low alcohol. The data predicted this score before any expert tasted it.'
+      : 'A balanced middle — neither the highs nor the lows that define the extremes.';
+    document.getElementById('card-note').textContent = note;
+    document.getElementById('overlay').classList.add('open');
+  }
+
+  function closeOverlay() {
+    document.getElementById('overlay').classList.remove('open');
+    bottleEls.forEach(function(b) { b.classList.remove('selected'); });
+  }
+
+  document.getElementById('close-btn').addEventListener('click', closeOverlay);
+  document.getElementById('overlay').addEventListener('click', function(e) {
+    if (e.target === document.getElementById('overlay')) closeOverlay();
+  });
+  document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeOverlay(); });
+</script>
+</body>
+</html>
